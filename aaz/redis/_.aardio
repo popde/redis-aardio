@@ -11,6 +11,7 @@ class redis{
 		if(!this.tcpClient.connectTimeout(ip, port, timeout)){
 			return null, "连接服务器失败"; 
 		}
+		return true; 
 	};
 	close = function(){
 		if(this.tcpClient){
