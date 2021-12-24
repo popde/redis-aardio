@@ -5,13 +5,17 @@ class redis{
 	ctor(){
 		..table.gc(this, "close")
 	};
-	connect = function(ip="127.0.0.1", port=6379, timeout=0.5){
+	connect = function(ip="127.0.0.1", port=6379, timeout=3){
 		this.tcpClient := ..wsock.tcp.client();
-		this.tcpClient.setTimeouts(5000, 5000)
 		if(!this.tcpClient.connectTimeout(ip, port, timeout)){
-			return null, "连接服务器失败"; 
+			return false, "连接服务器失败"; 
 		}
 		return true; 
+	};
+	setTimeouts = function(send=5000,receive=5000){
+		if(this.tcpClient){
+			return this.tcpClient.setTimeouts(send, receive); 
+		}
 	};
 	close = function(){
 		if(this.tcpClient){
@@ -34,9 +38,8 @@ class redis{
 				args[i] ++ resp.CRLF
 			);
 		}
-		
-		var param = ..raw.tostring(ptr)
-		var ok, err = this.tcpClient.write(param);
+
+		var ok, err = this.tcpClient.write(..raw.tostring(ptr));
 		ptr = ..raw.realloc(0, ptr);
 		
 		if(!ok){
@@ -46,7 +49,7 @@ class redis{
 		return this.readReply(); 
 	};
 	readReply = function(){
-		// 无参数表示读取一行，包含尾部的 CRLF，但返回的数据不包含尾部 CRLF 这2个字节
+		// 无参数表示读取一行，包含尾部的 CRLF，但返回的数据不包含尾部的 CRLF 这2个字节
 		var line = this.tcpClient.read();
 		if(!line){
 			 // 获取错误代码， 10060 超时  10054 中断*/
