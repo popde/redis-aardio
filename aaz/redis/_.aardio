@@ -90,7 +90,7 @@ class redis{
 					return false, errCode; 	
 				}
 				
-				// 读 CRLF
+				// 读末尾的 CRLF
 				var dummy = this.tcpClient.read(2)
 				if(!dummy){
 					var errCode = ::Ws2_32.WSAGetLastError();
@@ -142,12 +142,12 @@ class redis{
 	};
 	// 指定过期时间，秒为单位
 	setex = function(key, value, seconds){
-		var ret, err = this.command("SETEX", key, seconds, value); 
-		return ret == 1, err; 
+		var ret, err = this.command("SETEX", key, tostring(seconds), value); 
+		return ret == "OK", err; 
 	}
 	// 指定过期时间，毫秒为单位
 	psetex = function(key, value, seconds){
-		var ret, err = this.command("PSETEX", key, seconds, value); 
+		var ret, err = this.command("PSETEX", key, tostring(seconds), value); 
 		return ret == 1, err; 
 	}
 	// 以秒为单位，返回给定 key 的剩余生存时间 当 key 不存在时，返回 -2 , 当 key 存在但没有设置剩余生存时间时，返回 -1 
@@ -226,3 +226,9 @@ namespace redis{
 // http://doc.redisfans.com/
 // https://github.com/tporadowski/redis
 // https://github.com/tporadowski/redis/releases
+/**intellisense()
+aaz.redis() = !aaz_redis.
+aaz.redis = redis 客户端
+aaz.redis() = 创建 redis 客户端
+!aaz_redis.connect
+end intellisense**/
