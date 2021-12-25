@@ -28,14 +28,14 @@ class redis{
 		
 		var ptr = ..raw.realloc(1);
 		// *<参数数量> CR LF
-		ptr = ..raw.concat(ptr, resp.arrays ++ #args ++ resp.CRLF); 
+		ptr = ..raw.concat(ptr, "*" ++ #args ++ '\r\n'); 
 		
 		// $<参数 i 的字节数量> CR LF
 		// <参数 i 的数据> CR LF
 		for(i=1;#args;1){
 			ptr = ..raw.concat(ptr, 
-				resp.bulkStrings ++ #args[i] ++ resp.CRLF ++ 
-				args[i] ++ resp.CRLF
+				"$" ++ #args[i] ++ '\r\n' ++ 
+				args[i] ++ '\r\n'
 			);
 		}
 
@@ -63,17 +63,17 @@ class redis{
 		
 		var prefix = ..string.charCodeAt(line); 
 		select(prefix) {
-			case 43/*status + Simple Strings*/ {
+			case 43/*+ status*/ {
 				return ..string.slice(line, 2); 
 			}
-			case 45/*error - 当用户对不正确的数据类型执行命令， 或者执行一个不存在的命令。收到错误回复时产生一个异常。*/ { 
+			case 45/*- error*/ { 
 				var err = ..string.slice(line, 2)
 				error(err, 2)
 			}
-			case 58/*Integers : 必须能够用 64 位有符号整数表示*/ {
+			case 58/*: Integers*/ {
 				return tonumber(..string.slice(line, 2)); 
 			} 
-			case 36/*bulk $ "$6\r\nfoobar\r\n" 批量字符串是用来表示一个单一的二进制安全字符串，长度可达512MB*/{
+			case 36/*$ bulk*/{
 				var size = tonumber(..string.slice(line, 2));
 				// 如果被请求的值不存在， 那么批量回复会将特殊值 -1 用作回复的长度值
 				// 客户端应该返回空对象，而不是空字符串
@@ -101,7 +101,7 @@ class redis{
 				}
 				return data; 
 			}
-			case 42/*multi bulk * 多条批量回复是由多个回复组成的数组， 数组中的每个元素都可以是任意类型的回复， 包括多条批量回复本身。*/{
+			case 42/* *multi bulk*/{
 				var n = tonumber(..string.slice(line, 2));
 				/*
 				无内容的多条批量回复（null multi bulk reply）也是存在的， 
@@ -135,17 +135,14 @@ class redis{
 		var ret, err = this.command("set", key, value);
 		return ret == "OK", err; 
 	};
-	//  当 key 不存在
 	setnx = function(key, value){
 		var ret, err = this.command("SETNX", key, value);
 		return ret == 1, err; 
 	};
-	// 指定过期时间，秒为单位
 	setex = function(key, value, seconds){
 		var ret, err = this.command("SETEX", key, tostring(seconds), value); 
 		return ret == "OK", err; 
 	};
-	// 指定过期时间，毫秒为单位
 	psetex = function(key, value, seconds){
 		var ret, err = this.command("PSETEX", key, tostring(seconds), value); 
 		return ret == "OK", err; 
@@ -156,14 +153,9 @@ class redis{
 	pttl = function(key){
 		return this.command("PTTL", key); 
 	};
-	// 如果 key 中存储的值不是字符串，则会返回错误，因为 GET 仅处理字符串值
 	get = function(key, value){
 		return this.command("get", key);
 	};
-	/*
-	第一次设置 key 返回 field 数量
-	重复设置 key 返回 0 
-	*/
 	hset = function(key, field, value, ...){
 		var ret, err;
 		
@@ -202,27 +194,11 @@ class redis{
 		return ret;
 	};
 }
-namespace redis{
-    resp = {
-        simpleStrings = "+";
-        errors = "-";
-        integers = ":";
-        bulkStrings = "$";
-        arrays = "*";
-        CRLF = '\r\n';
-    }
-    
-    respCharCode = {
-        simpleStrings = 43;
-        errors = 45;
-        integers = 58;
-        bulkStrings = 36;
-        arrays = 42;
-    } 	
-}
+
 // http://doc.redisfans.com/
 // https://github.com/tporadowski/redis
 // https://github.com/tporadowski/redis/releases
+
 /**intellisense()
 aaz.redis() = 创建 redis 客户端\n!aaz_redis.
 aaz.redis = redis 客户端
@@ -230,6 +206,7 @@ end intellisense**/
 
 /**intellisense(!aaz_redis)
 set(.(key,value) = 将字符串值 value 关联到 key
-ttl(.(key) = 以秒为单位，返回给定 key 的剩余生存时间 当 key 不存在时，返回 -2 , \n当 key 存在但没有设置剩余生存时间时，返回 -1
-pttl(.(key) = 以毫秒为单位，返回给定 key 的剩余生存时间 当 key 不存在时，返回 -2 , \n当 key 存在但没有设置剩余生存时间时，返回 -1 
+get(.(key) = 返回 key 所关联的字符串值，如果 key 不存在那么返回 null
+ttl(.(key) = 以秒为单位，返回给定 key 的剩余生存时间\n当 key 不存在时，返回 -2\n当 key 存在但没有设置剩余生存时间时，返回 -1
+pttl(.(key) = 以毫秒为单位，返回给定 key 的剩余生存时间\n当 key 不存在时，返回 -2\n当 key 存在但没有设置剩余生存时间时，返回 -1
 end intellisense**/
